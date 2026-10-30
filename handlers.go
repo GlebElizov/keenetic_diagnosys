@@ -16,7 +16,6 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 	uptime := strings.TrimSpace(string(uptimeRaw))
 	if uptime == "" { uptime = "00:00:00 (эмуляция)" }
 
-	// Пытаемся получить реальное имя модели Keenetic
 	routerName := "Keenetic Device"
 	versionRaw, err := exec.Command("ndmq", "-p", "show version", "-u", "admin").Output()
 	if err == nil {

@@ -26,10 +26,10 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		_ = tmpl.ExecuteTemplate(w, "login.html", nil)
 		return
 	}
+
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
-	// Проверка пользователя (в дальнейшем можно связать с Keenetic RCI)
 	if username == "admin" && password == "admin" {
 		http.SetCookie(w, &http.Cookie{
 			Name:     "auth_session",
