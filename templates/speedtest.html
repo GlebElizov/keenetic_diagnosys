@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Keenetic - Проверка скорости</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; background: #f1f5f9; }
+        .sidebar { width: 280px; background: #0f172a; color: white; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+        .nav-button { background: none; border: none; color: #94a3b8; text-align: left; padding: 14px; font-size: 15px; cursor: pointer; border-radius: 8px; width: 100%; margin-bottom: 8px; font-weight: bold; }
+        .nav-button:hover { background: #1e293b; color: white; }
+        .nav-button.active { background: #2563eb; color: white; }
+        .logout-btn { background: #dc2626; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-size: 15px; }
+        .content { flex: 1; padding: 40px; overflow-y: auto; box-sizing: border-box; }
+        .card { background: white; padding: 28px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .btn { background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .btn:hover { background: #1d4ed8; }
+        select { padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; margin-right: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f8fafc; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div>
+            <h3 style="color:#2563eb; margin-top:0;">Keenetic Utility</h3>
+            <button class="nav-button" onclick="location.href='/'">📋 Списки ресурсов</button>
+            <button class="nav-button" onclick="location.href='/ping'">🌐 Проверка пинга</button>
+            <button class="nav-button active" onclick="location.href='/speedtest'">🚀 Тест скорости</button>
+            <button class="nav-button" onclick="location.href='/collect'">📦 Сбор данных</button>
+        </div>
+        <button class="logout-btn" onclick="location.href='/logout'">Выйти</button>
+    </div>
+    <div class="content">
+        <div class="card">
+            <h2>Тестирование скорости соединения</h2>
+            <div style="margin-bottom: 20px;">
+                <select id="segment-select">
+                    <option value="ru">Российский сегмент</option>
+                    <option value="intl">Международный сегмент</option>
+                </select>
+                <button class="btn" onclick="runSpeedtest()">Запустить последовательный тест</button>
+            </div>
+            <div id="status-text" style="color: #64748b;">Выберите сегмент и запустите последовательную проверку...</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Целевой ресурс / Сервер</th>
+                        <th>Загрузка (Download)</th>
+                        <th>Выгрузка (Upload)</th>
+                    </tr>
+                </thead>
+                <tbody id="result-table-body">
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: #94a3b8;">Данные отсутствуют</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        async function runSpeedtest() {
+            const segment = document.getElementById('segment-select').value;
+            const status = document.getElementById('status-text');
+            const tbody = document.getElementById('result-table-body');
+            
+            status.innerText = "Запущено последовательное тестирование узлов. Это может занять до 1-2 минут...";
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center;">Выполняется замер...</td></tr>`;
+
+            try {
+                const res = await fetch(`/api/speedtest?segment=${segment}`);
+                if (res.status === 401) { location.href = '/login'; return; }
+                const data = await res.json();
+                
+                tbody.innerHTML = '';
+                Object.keys(data).forEach(host => {
+                    const row = data[host];
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${host}</strong></td>
+                            <td style="color:#059669; font-weight:bold;">${row.download}</td>
+                            <td style="color:#2563eb; font-weight:bold;">${row.upload}</td>
+                        </tr>
+                    `;
+                });
+                status.innerText = "Тестирование скорости завершено.";
+            } catch (e) {
+                status.innerText = "Ошибка при проведении замера скорости.";
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color:#ef4444;">Ошибка запроса</td></tr>`;
+            }
+        }
+    </script>
+</body>
+</html>

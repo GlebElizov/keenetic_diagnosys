@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Keenetic - Архив данных</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; background: #f1f5f9; color: #1e293b; }
+        .sidebar { width: 280px; background: #0f172a; color: white; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+        .sidebar-top h3 { margin: 0 0 24px 0; font-size: 20px; color: #3b82f6; border-bottom: 1px solid #334155; padding-bottom: 12px; }
+        .nav-button { background: none; border: none; color: #94a3b8; text-align: left; padding: 14px; font-size: 15px; cursor: pointer; border-radius: 8px; width: 100%; margin-bottom: 8px; font-weight: bold; }
+        .nav-button:hover { background: #1e293b; color: white; }
+        .nav-button.active { background: #2563eb; color: white; }
+        .logout-btn { background: #dc2626; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-size: 15px; }
+        .content { flex: 1; padding: 40px; overflow-y: auto; box-sizing: border-box; }
+        .card { background: white; padding: 28px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .btn { background: #7c3aed; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .btn:hover { background: #6d28d9; }
+        select { padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; margin-right: 10px; background: white; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-top">
+            <h3>Keenetic Utility</h3>
+            <button class="nav-button" onclick="location.href='/'">📋 Списки ресурсов</button>
+            <button class="nav-button" onclick="location.href='/ping'">🌐 Проверка пинга</button>
+            <button class="nav-button" onclick="location.href='/speedtest'">🚀 Тест скорости</button>
+            <button class="nav-button active" onclick="location.href='/collect'">📦 Сбор данных</button>
+        </div>
+        <button class="logout-btn" onclick="location.href='/logout'">Выйти</button>
+    </div>
+    <div class="content">
+        <div class="card">
+            <h2>Формирование диагностического архива</h2>
+            <p style="color:#64748b; line-height: 1.5;">
+                Система вызовет необходимые тесты, соберет системное время, статус WireGuard клиента, метрики интерфейсов и упакует всё в готовый архив <strong>.tar.gz</strong> на лету.
+            </p>
+            <div style="margin-top: 24px; margin-bottom: 20px; display: flex; align-items: center;">
+                <select id="scope-select">
+                    <option value="all">Все (Полный сбор)</option>
+                    <option value="ru">Только российский сегмент</option>
+                    <option value="intl">Только международный сегмент</option>
+                </select>
+                <button class="btn" onclick="downloadDiagnosticArchive()">Сформировать и скачать .tar.gz</button>
+            </div>
+            <div id="status-text" style="color: #64748b; font-weight: 500;">Выберите область сбора данных и нажмите кнопку выше...</div>
+        </div>
+    </div>
+    <script>
+        function downloadDiagnosticArchive() {
+            const scope = document.getElementById('scope-select').value;
+            const status = document.getElementById('status-text');
+            status.innerText = "Архивация запущена. Бэкенд выполняет параллельные тесты. Пожалуйста, ожидайте скачивания...";
+            
+            // Запуск скачивания архива напрямую через GET-запрос
+            window.location.href = `/api/collect/download?scope=${scope}`;
+            
+            setTimeout(() => {
+                status.innerText = "Запрос передан на роутер. Файл формируется.";
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Keenetic - Списки ресурсов</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; background: #f1f5f9; }
+        .sidebar { width: 280px; background: #0f172a; color: white; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+        .nav-button { background: none; border: none; color: #94a3b8; text-align: left; padding: 14px; font-size: 15px; cursor: pointer; border-radius: 8px; width: 100%; margin-bottom: 8px; font-weight: bold; }
+        .nav-button:hover, .nav-button.active { background: #1e293b; color: white; }
+        .nav-button.active { background: #2563eb; }
+        .logout-btn { background: #dc2626; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-size: 15px; }
+        .content { flex: 1; padding: 40px; overflow-y: auto; box-sizing: border-box; }
+        .card { background: white; padding: 28px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 24px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        textarea { width: 100%; height: 150px; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-family: monospace; box-sizing: border-box; resize: vertical; margin-top: 8px; }
+        .btn { background: #059669; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; margin-top: 12px; }
+        .btn:hover { background: #047857; }
+        .header-panel { background: #1e293b; color: white; padding: 16px 24px; border-radius: 12px; margin-bottom: 24px; display: flex; gap: 30px; font-size: 14px; flex-wrap: wrap; }
+        .header-panel span { font-weight: bold; color: #38bdf8; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div>
+            <h3 style="color:#2563eb; margin-top:0;">Keenetic Utility</h3>
+            <button class="nav-button active" onclick="location.href='/'">📋 Списки ресурсов</button>
+            <button class="nav-button" onclick="location.href='/ping'">🌐 Проверка пинга</button>
+            <button class="nav-button" onclick="location.href='/speedtest'">🚀 Тест скорости</button>
+            <button class="nav-button" onclick="location.href='/collect'">📦 Сбор данных</button>
+        </div>
+        <button class="logout-btn" onclick="location.href='/logout'">Выйти</button>
+    </div>
+    <div class="content">
+        <div class="header-panel">
+            <div>Устройство: <span>{{.DeviceName}}</span></div>
+            <div>Время: <span>{{.Uptime}}</span></div>
+            <div>Пользователь: <span>{{.User}}</span></div>
+            <div>Версия ПО: <span>{{.Version}}</span></div> <!-- Вывод версии -->
+        </div>
+        <div class="card">
+            <h2>Настройка целевых ресурсов</h2>
+            <p style="color:#64748b;">Укажите адреса хостов через запятую или с новой строки.</p>
+            <div class="grid">
+                <div>
+                    <strong>🇷🇺 Российский сегмент</strong>
+                    <textarea id="ru-input"></textarea>
+                </div>
+                <div>
+                    <strong>🌐 Международный сегмент</strong>
+                    <textarea id="intl-input"></textarea>
+                </div>
+            </div>
+            <button class="btn" onclick="saveLists()">Сохранить списки</button>
+        </div>
+    </div>
+    <script>
+        async function loadLists() {
+            try {
+                const res = await fetch('/api/config/get');
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('ru-input').value = (data.ru_targets || []).join('\n');
+                    document.getElementById('intl-input').value = (data.intl_targets || []).join('\n');
+                }
+            } catch (e) { console.error("Ошибка загрузки", e); }
+        }
+        async function saveLists() {
+            const ru = document.getElementById('ru-input').value.split(/[\n,]+/).map(s=>s.trim()).filter(s=>s.length>0);
+            const intl = document.getElementById('intl-input').value.split(/[\n,]+/).map(s=>s.trim()).filter(s=>s.length>0);
+            try {
+                const res = await fetch('/api/config/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ru_targets: ru, intl_targets: intl})
+                });
+                if (res.ok) alert("Списки успешно сохранены!");
+            } catch (e) { alert("Ошибка соединения"); }
+        }
+        window.onload = loadLists;
+    </script>
+</body>
+</html>

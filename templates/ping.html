@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Keenetic - Проверка пинга</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; background: #f1f5f9; color: #1e293b; }
+        .sidebar { width: 280px; background: #0f172a; color: white; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+        .sidebar-top h3 { margin: 0 0 24px 0; font-size: 20px; color: #3b82f6; border-bottom: 1px solid #334155; padding-bottom: 12px; }
+        .nav-button { background: none; border: none; color: #94a3b8; text-align: left; padding: 14px; font-size: 15px; cursor: pointer; border-radius: 8px; width: 100%; margin-bottom: 8px; font-weight: bold; }
+        .nav-button:hover { background: #1e293b; color: white; }
+        .nav-button.active { background: #2563eb; color: white; }
+        .logout-btn { background: #dc2626; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-size: 15px; }
+        .content { flex: 1; padding: 40px; overflow-y: auto; box-sizing: border-box; }
+        .card { background: white; padding: 28px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 24px; }
+        .btn { background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .btn:hover { background: #1d4ed8; }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+        select, input { padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; margin-right: 10px; background: white; }
+        .controls { margin-bottom: 20px; display: flex; align-items: center; }
+        .chart-box { border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 8px; padding: 15px; margin-top: 20px; position: relative; }
+        .legend { display: flex; gap: 15px; margin-bottom: 10px; flex-wrap: wrap; font-size: 14px; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-color { width: 12px; height: 12px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-top">
+            <h3>Keenetic Utility</h3>
+            <button class="nav-button" onclick="location.href='/'">📋 Списки ресурсов</button>
+            <button class="nav-button active" onclick="location.href='/ping'">🌐 Проверка пинга</button>
+            <button class="nav-button" onclick="location.href='/speedtest'">🚀 Тест скорости</button>
+            <button class="nav-button" onclick="location.href='/collect'">📦 Сбор данных</button>
+        </div>
+        <button class="logout-btn" onclick="location.href='/logout'">Выйти</button>
+    </div>
+    <div class="content">
+        <div class="card">
+            <h2>Мониторинг задержки (Пинг)</h2>
+            <div class="controls">
+                <select id="segment-select">
+                    <option value="ru">Российский сегмент</option>
+                    <option value="intl">Международный сегмент</option>
+                </select>
+                <input type="number" id="count-input" value="10" min="1" max="50" title="Количество последовательных запусков">
+                <button class="btn" id="start-btn" onclick="runPing()">Запустить опрос</button>
+            </div>
+            <div id="status-text" style="color: #64748b; font-weight: 500;">Нажмите запуск для проведения серии из 10 тестов...</div>
+            
+            <div class="chart-box" id="chart-area" style="display:none;">
+                <div class="legend" id="chart-legend"></div>
+                <svg id="svg-chart" width="100%" height="300" viewBox="0 0 800 300" preserveAspectRatio="none" style="overflow: visible;"></svg>
+            </div>
+        </div>
+    </div>
+    <script>
+        async function runPing() {
+            const segment = document.getElementById('segment-select').value;
+            const count = document.getElementById('count-input').value;
+            const status = document.getElementById('status-text');
+            const btn = document.getElementById('start-btn');
+            
+            status.innerText = "Бэкенд проводит серию последовательных параллельных запусков (" + count + " раз)...";
+            btn.disabled = true;
+            
+            try {
+                const res = await fetch(`/api/ping?segment=${segment}&count=${count}`);
+                if (res.status === 401) { location.href = '/login'; return; }
+                const data = await res.json();
+                
+                status.innerText = "Серия тестов успешно завершена.";
+                document.getElementById('chart-area').style.display = 'block';
+                renderSvgChart(data);
+            } catch (e) {
+                status.innerText = "Ошибка выполнения опроса.";
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function renderSvgChart(data) {
+            const svg = document.getElementById('svg-chart');
+            const legend = document.getElementById('chart-legend');
+            svg.innerHTML = '';
+            legend.innerHTML = '';
+
+            const hosts = Object.keys(data);
+            if (hosts.length === 0) return;
+
+            let maxPing = 50; 
+            hosts.forEach(host => {
+                data[host].forEach(v => { if (v > maxPing) maxPing = v; });
+            });
+            maxPing = Math.ceil(maxPing * 1.1); 
+
+            const width = 800;
+            const height = 300;
+            const paddingLeft = 50;
+            const paddingBottom = 30;
+            const graphWidth = width - paddingLeft;
+            const graphHeight = height - paddingBottom;
+
+            // Рисуем сетку Y
+            for (let i = 0; i <= 4; i++) {
+                const y = graphHeight - (i * (graphHeight / 4));
+                const val = Math.round((maxPing / 4) * i);
+                svg.innerHTML += `<line x1="${paddingLeft}" y1="${y}" x2="${width}" y2="${y}" stroke="#e2e8f0" stroke-dasharray="4"/>`;
+                svg.innerHTML += `<text x="10" y="${y + 4}" fill="#64748b" font-size="12">${val}мс</text>`;
+            }
+
+            hosts.forEach((host, index) => {
+                const history = data[host];
+                if (history.length === 0) return;
+
+                const hue = (index * 137.5) % 360;
+                const color = `hsl(${hue}, 70%, 50%)`;
+
+                legend.innerHTML += `
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:${color}"></div>
+                        <span>${host}</span>
+                    </div>
+                `;
+
+                const points = history.map((val, i) => {
+                    const x = paddingLeft + (i * (graphWidth / Math.max(1, history.length - 1)));
+                    const y = val === 0 ? graphHeight : graphHeight - (val * (graphHeight / maxPing));
+                    return {x, y};
+                });
+
+                const polylinePoints = points.map(p => `${p.x},${p.y}`).join(' ');
+                svg.innerHTML += `<polyline points="${polylinePoints}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+                points.forEach(p => {
+                    svg.innerHTML += `<circle cx="${p.x}" cy="${p.y}" r="4" fill="white" stroke="${color}" stroke-width="2"/>`;
+                });
+            });
+        }
+    </script>
+</body>
+</html>

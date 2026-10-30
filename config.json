@@ -1,0 +1,10 @@
+{
+  "ru_targets": [
+    "yandex.ru",
+    "mail.ru"
+  ],
+  "intl_targets": [
+    "8.8.8.8",
+    "google.com"
+  ]
+}
